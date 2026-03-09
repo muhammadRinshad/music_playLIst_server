@@ -1,5 +1,5 @@
 import express from "express";
-import { getSongs, uploadSong, getAllSongs, toggleLike, getLikedSongs, recordPlay, getSongsBySection, getSongById } from "../controllers/songController.js";
+import { getSongs, uploadSong, getAllSongs, toggleLike, getLikedSongs, recordPlay, getSongsBySection, getSongById, deleteSong } from "../controllers/songController.js";
 import { uploadWithCover, validateUploadSize } from "../middlewares/multer.js";
 import { middleWareAuthentication } from "../middlewares/authentication.js";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
@@ -14,4 +14,6 @@ songRoutes.post("/toggleLike/:songId", likePlayLimiter, middleWareAuthentication
 songRoutes.get("/getLikedSongs", middleWareAuthentication, getLikedSongs);
 songRoutes.post("/recordPlay/:songId", likePlayLimiter, middleWareAuthentication, recordPlay);
 songRoutes.get("/getSongsBySection/:userId", middleWareAuthentication, getSongsBySection);
+songRoutes.delete("/deleteSong/:songId", middleWareAuthentication, requireAdmin, deleteSong);
+songRoutes.post("/deleteSong/:songId", middleWareAuthentication, requireAdmin, deleteSong);
 export default songRoutes;

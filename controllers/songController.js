@@ -3,7 +3,19 @@ import cloudinary from "../config/cloudnary.js";
 import fs from "fs";
 import User from "../models/userModel.js";
 import songModel from "../models/songModel.js";
+import playListModel from "../models/playListModel.js";
 import { parseFile } from "music-metadata";
+
+function getPublicIdFromUrl(url) {
+  if (!url || !url.includes("cloudinary.com")) return null;
+  const afterUpload = url.split("/upload/")[1];
+  if (!afterUpload) return null;
+  const withoutQuery = afterUpload.split("?")[0];
+  const match = withoutQuery.match(/v\d+\/(.+)\.[a-z0-9]+$/i);
+  if (match) return match[1];
+  const fallback = withoutQuery.replace(/\.[a-z0-9]+$/i, "").replace(/^[^/]*\//, "");
+  return fallback || null;
+}
 
 export const uploadSong = async (req, res, next) => {
   try {
@@ -228,6 +240,39 @@ export const getSongById = async (req, res) => {
     const likedSet = user ? new Set((user.likedSongs || []).map((id) => String(id))) : new Set();
     const obj = song.toObject();
     res.json({ ...obj, isLiked: likedSet.has(String(obj._id)) });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteSong = async (req, res) => {
+  try {
+    const { songId } = req.params;
+    const song = await songModel.findById(songId);
+    if (!song) return res.status(404).json({ message: "Song not found" });
+
+    const filePublicId = getPublicIdFromUrl(song.filePath);
+    if (filePublicId) {
+      await cloudinary.uploader
+        .destroy(filePublicId, { resource_type: "video", invalidate: true })
+        .catch((e) => console.log("Cloudinary song delete:", e.message));
+    }
+
+    if (song.coverUrl) {
+      const coverPublicId = getPublicIdFromUrl(song.coverUrl);
+      if (coverPublicId) {
+        await cloudinary.uploader
+          .destroy(coverPublicId, { resource_type: "image", invalidate: true })
+          .catch((e) => console.log("Cloudinary cover delete:", e.message));
+      }
+    }
+
+    await User.updateMany({ likedSongs: songId }, { $pull: { likedSongs: songId } });
+    await playListModel.updateMany({ songs: songId }, { $pull: { songs: songId } });
+    await songModel.findByIdAndDelete(songId);
+
+    res.json({ message: "Song deleted" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error.message });

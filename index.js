@@ -9,9 +9,9 @@ dotenv.config()
 const app =express()
 app.use(cors())
 app.use(express.json())
-app.use("/",userRoutes)
-app.use("/song",songRoutes)
-app.use("/playList",playListRoutes)
+app.use("/song", songRoutes)
+app.use("/playList", playListRoutes)
+app.use("/", userRoutes)
 
 app.use((err, req, res, next) => {
   if (err.code === "LIMIT_FILE_SIZE") {
@@ -25,4 +25,5 @@ app.use((err, req, res, next) => {
 });
 
 connectDB()
-app.listen(3000,()=>console.log("server running at local host:3000"))
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`server running on port ${PORT}`))
