@@ -135,6 +135,31 @@ export async function getSongsOnPlayList(req,res) {
         
     } 
 }
+export const reorderPlaylist = async (req, res) => {
+  try {
+    const { playList } = req.params;
+    const { songIds } = req.body;
+
+    if (!Array.isArray(songIds)) {
+      return res.status(400).json({ message: "songIds array required" });
+    }
+
+    const playlist = await playListModel.findById(playList);
+    if (!playlist) return res.status(404).json({ message: "Playlist not found" });
+
+    playlist.songs = songIds.filter((id) =>
+      playlist.songs.some((s) => String(s) === String(id))
+    );
+    await playlist.save();
+
+    const updated = await playListModel.findById(playList).populate("songs");
+    res.json(updated);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getPlayLists = async (req, res) =>{
      try {
       const{userId}=req.params

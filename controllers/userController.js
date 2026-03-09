@@ -1,12 +1,21 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
+import playListModel from "../models/playListModel.js";
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const emailOrUsername = req.body.emailOrUsername || req.body.email;
+    const password = req.body.password;
+    const input = (emailOrUsername || "").trim().toLowerCase();
 
-    const user = await User.findOne({ email });
+    if (!input || !password) {
+      return res.status(400).json({ message: "Email/username and password are required" });
+    }
+
+    const user = await User.findOne({
+      $or: [{ email: input }, { username: input }]
+    });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -27,10 +36,44 @@ export const login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
-        email: user.email
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin || false
       }
     });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: error.message || "Server error" });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const removeUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const adminId = String(req.user._id);
+
+    if (userId === adminId) {
+      return res.status(400).json({ message: "Cannot remove yourself" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await playListModel.deleteMany({ owner: userId });
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: "User removed" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

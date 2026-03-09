@@ -13,5 +13,16 @@ app.use("/",userRoutes)
 app.use("/song",songRoutes)
 app.use("/playList",playListRoutes)
 
+app.use((err, req, res, next) => {
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({ message: "File too large. Song max 25 MB, cover max 5 MB." });
+  }
+  if (err.message?.includes("Song must") || err.message?.includes("Cover must")) {
+    return res.status(400).json({ message: err.message });
+  }
+  console.error(err);
+  res.status(500).json({ error: err.message || "Server error" });
+});
+
 connectDB()
 app.listen(3000,()=>console.log("server running at local host:3000"))

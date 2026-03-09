@@ -2,10 +2,12 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
+    username: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+      lowercase: true,
+      unique: true
     },
     email: {
       type: String,
@@ -14,11 +16,19 @@ const userSchema = new mongoose.Schema(
       lowercase: true
     },
     password: {
-    type: String,
-    required: true
-  }
-    
-}
+      type: String,
+      required: true
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false
+    },
+    likedSongs: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Song"
+    }]
+  },
+  { timestamps: true }
 );
 
 const User = mongoose.model("User", userSchema);
